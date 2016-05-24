@@ -1,0 +1,5 @@
+name: Previous & Next
+type: module
+description: Add a "Previous/Next" links to the node display.
+core: 8.x
+package: Other

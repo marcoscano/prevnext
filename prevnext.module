@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains prevnext.module..
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function prevnext_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the prevnext module.
+    case 'help.page.prevnext':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Add a &quot;Previous/Next&quot; links to the node display.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
