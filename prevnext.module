@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains prevnext.module..
+ * Contains prevnext.module.
  */
 
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -40,7 +40,7 @@ function prevnext_theme($existing, $type, $theme, $path) {
       'void' => TRUE,
     ],
     // Note that there is no need to indicate the template name, in absence of
-    // it the system will assume "prevnext.html.twig".
+    // it the system will assume "prevnext.html.twig", inside "templates" dir.
   ];
 
   return $themes;
@@ -77,11 +77,12 @@ function prevnext_entity_extra_field_info() {
  * Implements hook_ENTITY_TYPE_view().
  */
 function prevnext_node_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
-  $nids = [
-    'prev' => array_rand(array('', '1', '2')),
-    'next' => array_rand(array('', '3', '4')),
-  ];
+
+
   if ($display->getComponent('prevnext_previous')) {
+
+    $nids = _prevnext_get_prev_and_next_nids($entity);
+
     $build['prevnext_previous'] = [
       '#theme' => 'prevnext',
       '#direction' => 'previous',
@@ -101,8 +102,7 @@ function prevnext_node_view(array &$build, \Drupal\Core\Entity\EntityInterface $
     // Once these links will be cached inside the node rendered output, we will
     // add a custom cache tag to allow invalidation of all these cached info
     // later (for example when a new node of this type is created).
-    $bundle = $entity->bundle();
-    $build['#cache']['tags'][] = 'prevnext-' . $bundle;
+    $build['#cache']['tags'][] = 'prevnext-' . $entity->bundle();
   }
 
 }
@@ -118,4 +118,32 @@ function prevnext_node_presave(Drupal\Core\Entity\EntityInterface $entity) {
     // all cached rendered output of other nodes of this type with our tag.
     Cache::invalidateTags(['prevnext-' . $entity->bundle()]);
   }
+}
+
+/**
+ * Query the database and fetch the previous and next nids, if they exist.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The node being viewed.
+ *
+ * @return array
+ *   An array with keys "prev" and "next", and the values are the NIDs of the
+ *   corresponding previous and next nodes. The values may be empty, if the
+ *   node is the first or last nodes of this type.
+ */
+function _prevnext_get_prev_and_next_nids(\Drupal\Core\Entity\EntityInterface $entity) {
+  // @TODO: isn't there a better way to get the query object?
+  $entity_query = \Drupal::entityQuery('node');
+  $nodes = $entity_query->condition('status', NODE_PUBLISHED)
+    ->condition('type', $entity->bundle())
+    ->condition('langcode', $entity->language()->getId())
+    ->execute();
+  // @TODO: improve the logic to allow defining the sort criteria.
+  $current_nid = $entity->id();
+  // Reset the array to have numerically indexed keys.
+  $nodes = array_values($nodes);
+  $current_key = array_search($current_nid, $nodes);
+  $nids['prev'] = ($current_key == 0) ? '' : $nodes[$current_key - 1];
+  $nids['next'] = ($current_key == count($nodes) - 1) ? '' : $nodes[$current_key + 1];
+  return $nids;
 }
